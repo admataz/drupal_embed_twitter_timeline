@@ -1,0 +1,142 @@
+<?php
+
+
+// TODO: admin interface to input auth settings
+// TODO: admin interface to input display options
+// TODO: set up cron options
+// TODO: basic public display and associated JS/CSS
+// TODO: add user setting for theme variations
+
+
+
+/**
+ * Implements hook_menu_alter().
+ */
+function embed_twitter_feed_menu_alter(&$items) {
+
+  $items['admin/config/embed_twitter_feed'] = array(
+    'title' => 'Configure Twitter API',
+    'description' => 'connecting this site to others',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'embed_twitter_feed_config_form'
+    ) ,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'embed_twitter_feed.admin.inc',
+    'access arguments' => array(
+      'configure social media api settings'
+    ) ,
+  );
+  return $items;
+}
+
+
+  /**
+   * Implements hook_permission().
+   */
+  function embed_twitter_feed_permission() {
+    return array(
+      'configure social media api settings' =>  array(
+        'title' => t('Manage social media API details'),
+        'description' => t('User can edit API details for Twitter etc'),
+      ),
+    );
+  }
+
+
+  /**
+   * Implements hook_cron().
+   */
+  function embed_twitter_feed_cron() {
+     embed_twitter_feed_get_tweets();
+  }
+
+
+/**
+ * Implements hook_theme().
+ */
+function embed_twitter_feed_theme($existing, $type, $theme, $path) {
+  return array(
+
+    'twitter_list' => array(
+      'variables' => array('tweets' => NULL, ),
+      'template' => 'twitter-list',
+      'path' => $path.'/theme'
+    ),
+    'tweet' => array(
+      'variables' => array('tweet' => NULL),
+      'template' => 'tweet',
+      'path' => $path.'/theme'
+      )
+
+  );
+}
+
+
+
+
+
+/**
+ * get the latest tweets! - 
+ * generally this would be run from a cron - but can be called from anywhere 
+ */
+function embed_twitter_feed_get_tweets(){
+     $opts = variable_get('embed_twitter_feed_settings', array());
+      if (empty($opts) || empty($opts['twitter'])) {
+        return false;
+      }
+    
+      $twitter = new OnTheWeb_Twitter($opts['twitter'], OnTheWeb_Adaptor_Drupal);
+      $timelines = explode(',',$opts['twitter']['timelines']);
+      $count = !empty($opts['twitter']['tweetcount'])?$opts['twitter']['tweetcount']:false;
+      $retweets = !empty($opts['twitter']['retweets'])?$opts['twitter']['retweets']:false;
+      $replies = !empty($opts['twitter']['replies'])?$opts['twitter']['replies']:false;
+
+      // LIFO queue for rotating the timelines that are updated
+      $thistime_timeline = array_pop($tiemlines);
+      $timelines = array_unshift($thistime_timeline,$timelines);
+      $opts['twitter']['timelines'] = implode(',',$timelines);
+      variable_set('embed_twitter_feed_settings', $opts);
+
+      $query_options = array('screen_name'=>$thistime_timeline);
+
+      if($count){
+        $query_options['count'] = $count;        
+      }
+
+      if($retweets){
+        $query_options['rts'] = $retweets; 
+      }
+
+      if($replies){
+        $query_options['replies'] = $replies; 
+      }
+
+      $tweets = $twitter->get_user_timeline($query_options);
+
+      variable_set('embed_twitter_feed_'.$thistime_timeline, $tweets);
+
+      dpm($tweets);
+
+
+}
+
+
+function embed_twitter_feed_output($feed_id='latest_tweets'){
+  $tweetsdata = variable_get('embed_twitter_feed_'.$feed_id, array());
+  
+  $tweets = array();
+  foreach($tweetsdata as $t){
+      $t->text = embed_twitter_feed_twitterify($t->text);
+      $tweets[] = array('#theme'=>'tweet', '#tweet'=>$t);
+  }
+
+  $output = array('#theme'=>'twitter_list', '#tweets'=> $tweets);
+
+
+  return $output;
+}
+
+
+
+

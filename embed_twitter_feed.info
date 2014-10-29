@@ -1,0 +1,11 @@
+name = Embed Twitter Feed
+description = Embed a Twitter Feed
+package = Social Media Tools
+version = 7.x-0.1-dev
+core = 7.x
+
+;dependencies[] = imagecache_external
+
+files[] = classes/OnTheWeb_Base.php
+files[] = classes/OnTheWeb_Request_Drupal.php
+files[] = classes/OnTheWeb_Twitter.php

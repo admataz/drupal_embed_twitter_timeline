@@ -15,14 +15,16 @@
 function embed_twitter_feed_menu_alter(&$items) {
 
   $items['admin/config/embed_twitter_feed'] = array(
+    'file' => 'embed_twitter_feed.admin.inc',
+    'file path' => drupal_get_path('module', 'embed_twitter_feed'), // fails without this - which should be the default? 
     'title' => 'Configure Twitter API',
     'description' => 'connecting this site to others',
     'page callback' => 'drupal_get_form',
     'page arguments' => array(
       'embed_twitter_feed_config_form'
     ) ,
-    'type' => MENU_LOCAL_TASK,
-    'file' => 'embed_twitter_feed.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
+    
     'access arguments' => array(
       'configure social media api settings'
     ) ,
@@ -57,7 +59,6 @@ function embed_twitter_feed_menu_alter(&$items) {
  */
 function embed_twitter_feed_theme($existing, $type, $theme, $path) {
   return array(
-
     'twitter_list' => array(
       'variables' => array('tweets' => NULL, ),
       'template' => 'twitter-list',
@@ -68,11 +69,8 @@ function embed_twitter_feed_theme($existing, $type, $theme, $path) {
       'template' => 'tweet',
       'path' => $path.'/theme'
       )
-
   );
 }
-
-
 
 
 
@@ -85,55 +83,44 @@ function embed_twitter_feed_get_tweets(){
       if (empty($opts) || empty($opts['twitter'])) {
         return false;
       }
-    
-      $twitter = new OnTheWeb_Twitter($opts['twitter'], OnTheWeb_Adaptor_Drupal);
       $timelines = explode(',',$opts['twitter']['timelines']);
+      if(empty($timelines)){
+        return false;
+      }
+      $twitter = new OnTheWeb_Twitter($opts['twitter'], 'OnTheWeb_Adaptor_Drupal');
       $count = !empty($opts['twitter']['tweetcount'])?$opts['twitter']['tweetcount']:false;
       $retweets = !empty($opts['twitter']['retweets'])?$opts['twitter']['retweets']:false;
       $replies = !empty($opts['twitter']['replies'])?$opts['twitter']['replies']:false;
-
       // LIFO queue for rotating the timelines that are updated
-      $thistime_timeline = array_pop($tiemlines);
-      $timelines = array_unshift($thistime_timeline,$timelines);
+      $thistime_timeline = array_pop($timelines);
+     array_unshift($timelines, $thistime_timeline);
       $opts['twitter']['timelines'] = implode(',',$timelines);
       variable_set('embed_twitter_feed_settings', $opts);
-
       $query_options = array('screen_name'=>$thistime_timeline);
-
       if($count){
         $query_options['count'] = $count;        
       }
-
       if($retweets){
         $query_options['rts'] = $retweets; 
       }
-
       if($replies){
         $query_options['replies'] = $replies; 
       }
-
       $tweets = $twitter->get_user_timeline($query_options);
-
       variable_set('embed_twitter_feed_'.$thistime_timeline, $tweets);
-
-      dpm($tweets);
-
-
 }
 
-
+/**
+ * get cached twitter data and return as a renderable array
+ */
 function embed_twitter_feed_output($feed_id='latest_tweets'){
   $tweetsdata = variable_get('embed_twitter_feed_'.$feed_id, array());
-  
   $tweets = array();
   foreach($tweetsdata as $t){
       $t->text = embed_twitter_feed_twitterify($t->text);
       $tweets[] = array('#theme'=>'tweet', '#tweet'=>$t);
   }
-
   $output = array('#theme'=>'twitter_list', '#tweets'=> $tweets);
-
-
   return $output;
 }
 

@@ -23,10 +23,11 @@ class OnTheWeb_Adaptor_Drupal{
 			'method' => $method,
 			'data' => $data
 			));
-
+		
 		if (!$response->data) {
 			return false;
 		}
+
 		return $response;
 	}
 

@@ -7,5 +7,5 @@ core = 7.x
 ;dependencies[] = imagecache_external
 
 files[] = classes/OnTheWeb_Base.php
-files[] = classes/OnTheWeb_Request_Drupal.php
+files[] = classes/OnTheWeb_Adaptor_Drupal.php
 files[] = classes/OnTheWeb_Twitter.php

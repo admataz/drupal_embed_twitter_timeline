@@ -32,9 +32,9 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
   private $auth;
 
 
-  public function __construct($adaptor, $auth){
+  public function __construct($auth, $adaptor){
     $this->adaptor = $adaptor;
-    $this->$auth = $auth;
+    $this->auth = $auth;
   }
 
 
@@ -53,20 +53,20 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
       'Authorization' => $auth_token
     );
     $method = $method;
-    $url = $this->twitter_endpoint . $path;
+    $url = self::$twitter_endpoint . $path;
     if (!empty($q) && $method == 'GET') {
-      $url.= '?' . $this->adaptor::build_query($q);
+      $url.= '?' . call_user_func(array($this->adaptor, 'build_query'), $q);
     }
     $reqdata = null;
     if (!empty($q) && $method == 'POST') {
       $headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      $reqdata = $this->adaptor::build_query($q);
+      $reqdata = call_user_func(array($this->adaptor, 'build_query'), $q);
     }
-    $response = $this->adaptor::req( $url,$method, $headers,$reqdata);
+    $response = call_user_func(array($this->adaptor, 'http_req'), $url, $method, $headers, $reqdata);
     if ($response->code != '200') {
       return false;
     }
-    $data = $this->adaptor::json_decode($response->data);
+    $data = call_user_func(array($this->adaptor, 'json_decode'), $response->data);
     return $data;
   }
 
@@ -81,11 +81,12 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
       'Content-Type' => 'application/x-www-form-urlencoded;charset=UTF-8'
     );
 
-    $response = $this->adaptor::req($this->twitter_auth_endpoint);
-    $response_obj = $this->adaptor::json_decode($response->data);
+    $response = call_user_func(array($this->adaptor, 'http_req'), self::$twitter_auth_endpoint, $method, $headers, $data);
+    $response_obj = call_user_func(array($this->adaptor, 'json_decode'), $response->data);
+    
 
-    if ($response_obj->token_type == 'bearer') {
-      return 'Bearer ' . ($response_obj->access_token);
+    if ($response_obj['token_type'] == 'bearer') {
+      return 'Bearer ' . ($response_obj['access_token']);
     }
     return false;
   }
@@ -207,9 +208,11 @@ public function get_followers_count($screen_name = 'theelders') {
       throw new Exception("You must specify a Twitter user_id or screen_name to get their timeline ", 1);
       return false;
     }
+
+    $opts['screen_name'] = trim($opts['screen_name']);
    
     // Get a user's timeline
-    $data = $this->get_api_data('/statuses/user_timeline', $opts);
+    $data = $this->get_api_data('/statuses/user_timeline.json', $opts);
     
     return $data;
 
@@ -250,10 +253,7 @@ public function bulk_check($itm_ids=''){
     ) , $data['id']);
     
     // xdebug_break();
-
     return $webitems;
-
-
   }
 
 
@@ -329,4 +329,3 @@ private function shorten_url_title2( $match ) {
 
 
 
-}

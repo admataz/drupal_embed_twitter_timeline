@@ -15,7 +15,12 @@ function embed_twitter_feed_config_form($form, &$form_state) {
   $default_settings = array(
     'twitter' => array(
       'consumer_key' => '',
-      'consumer_secret' => ''
+      'consumer_secret' => '',
+      'timelines' => array(),
+      'tweetcount' => 20,
+      'retweets' => 0,
+      'replies' => 0,
+
     ) 
   );
   
@@ -84,7 +89,7 @@ function embed_twitter_feed_config_form($form, &$form_state) {
   );
   
   $form['#submit'] = array(
-    'embed_twitter_feed_settings_submit'
+    'embed_twitter_feed_config_submit'
   );
   return $form;
 }

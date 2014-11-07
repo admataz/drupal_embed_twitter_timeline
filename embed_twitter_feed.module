@@ -1,22 +1,12 @@
 <?php
 
-
-// TODO: admin interface to input auth settings
-// TODO: admin interface to input display options
-// TODO: set up cron options
-// TODO: basic public display and associated JS/CSS
-// TODO: add user setting for theme variations
-
-
-
 /**
  * Implements hook_menu_alter().
  */
 function embed_twitter_feed_menu_alter(&$items) {
 
   $items['admin/config/embed_twitter_feed'] = array(
-    'file' => 'embed_twitter_feed.admin.inc',
-    'file path' => drupal_get_path('module', 'embed_twitter_feed'), // fails without this - which should be the default? 
+    
     'title' => 'Configure Twitter API',
     'description' => 'connecting this site to others',
     'page callback' => 'drupal_get_form',
@@ -27,7 +17,9 @@ function embed_twitter_feed_menu_alter(&$items) {
     
     'access arguments' => array(
       'configure social media api settings'
-    ) ,
+    ),
+    'file' => 'embed_twitter_feed.admin.inc',
+    'file path' => drupal_get_path('module', 'embed_twitter_feed'), // fails without this - which should be the default? 
   );
   return $items;
 }
@@ -54,25 +46,6 @@ function embed_twitter_feed_menu_alter(&$items) {
   }
 
 
-/**
- * Implements hook_theme().
- */
-function embed_twitter_feed_theme($existing, $type, $theme, $path) {
-  return array(
-    'twitter_list' => array(
-      'variables' => array('tweets' => NULL, ),
-      'template' => 'twitter-list',
-      'path' => $path.'/theme'
-    ),
-    'tweet' => array(
-      'variables' => array('tweet' => NULL),
-      'template' => 'tweet',
-      'path' => $path.'/theme'
-      )
-  );
-}
-
-
 
 /**
  * get the latest tweets! - 
@@ -80,50 +53,56 @@ function embed_twitter_feed_theme($existing, $type, $theme, $path) {
  */
 function embed_twitter_feed_get_tweets(){
      $opts = variable_get('embed_twitter_feed_settings', array());
-      if (empty($opts) || empty($opts['twitter'])) {
+
+      if (empty($opts) || empty($opts['defaults'])) {
         return false;
       }
-      $timelines = explode(',',$opts['twitter']['timelines']);
-      if(empty($timelines)){
-        return false;
+      
+      $auth = array('consumer_key' => $opts['defaults']['consumer_key'], 'consumer_secret' => $opts['defaults']['consumer_secret']);
+
+      
+
+      $timelines = $opts['defaults']['timelines'];
+      $timeline_options = array();
+      if(!empty($timelines)){
+        
+        $screen_name = $opts['defaults']['timelines'];
+        $count = !empty($opts['defaults']['tweetcount'])?$opts['defaults']['tweetcount']:20;
+        $retweets = !empty($opts['defaults']['retweets'])?$opts['defaults']['retweets']:false;
+        
+        //be careful - the option is exclude replies - but our interface asks for 'include' so we want a truthy to exclude, a falsey to include
+        $replies = empty($opts['defaults']['replies'])?$opts['defaults']['replies']:true;
+
+
+        $timeline_options['default'] = array(
+          'api_options'=>array(
+            'screen_name' => $screen_name,
+            'count' => $count,
+            'rts'=> $retweets,
+            'exclude_replies' => $replies
+            )
+        );
       }
-      $twitter = new OnTheWeb_Twitter($opts['twitter'], 'OnTheWeb_Adaptor_Drupal');
-      $count = !empty($opts['twitter']['tweetcount'])?$opts['twitter']['tweetcount']:false;
-      $retweets = !empty($opts['twitter']['retweets'])?$opts['twitter']['retweets']:false;
-      $replies = !empty($opts['twitter']['replies'])?$opts['twitter']['replies']:false;
-      // LIFO queue for rotating the timelines that are updated
-      $thistime_timeline = array_pop($timelines);
-     array_unshift($timelines, $thistime_timeline);
-      $opts['twitter']['timelines'] = implode(',',$timelines);
-      variable_set('embed_twitter_feed_settings', $opts);
-      $query_options = array('screen_name'=>$thistime_timeline);
-      if($count){
-        $query_options['count'] = $count;        
+      
+
+      // get the list of timelines from other modules via hook_embed_twitter_feed_timeline();
+      drupal_alter('embed_twitter_feed_timeline', $timeline_options );
+
+      foreach($timeline_options as $source=>$loadopts){
+          $twitter = new OnTheWeb_Twitter( $auth, 'OnTheWeb_Adaptor_Drupal');
+
+          $api_options = array_merge($timeline_options['default']['api_options'], $loadopts['api_options']);
+
+          $tweets = $twitter->get_user_timeline($api_options);
+          
+          // do a callback if one has been set. 
+          if(isset($loadopts['callback_context'])){
+            drupal_alter('embed_twitter_feed_timeline_save', $tweets, $loadopts['callback_context']);
+          }
+          if($source == 'default'){
+            variable_set('embed_twitter_feed_data_default', $tweets);
+          }
       }
-      if($retweets){
-        $query_options['rts'] = $retweets; 
-      }
-      if($replies){
-        $query_options['replies'] = $replies; 
-      }
-      $tweets = $twitter->get_user_timeline($query_options);
-      variable_set('embed_twitter_feed_'.$thistime_timeline, $tweets);
+      
 }
-
-/**
- * get cached twitter data and return as a renderable array
- */
-function embed_twitter_feed_output($feed_id='latest_tweets'){
-  $tweetsdata = variable_get('embed_twitter_feed_'.$feed_id, array());
-  $tweets = array();
-  foreach($tweetsdata as $t){
-      $t->text = embed_twitter_feed_twitterify($t->text);
-      $tweets[] = array('#theme'=>'tweet', '#tweet'=>$t);
-  }
-  $output = array('#theme'=>'twitter_list', '#tweets'=> $tweets);
-  return $output;
-}
-
-
-
 

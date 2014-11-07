@@ -37,13 +37,9 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
     $this->auth = $auth;
   }
 
-
-  
-  
-
-
-
-
+  /**
+   * query the Twitter API
+   */
   private function get_api_data($path, $q = array(), $method='GET') {
     $auth_token = $this->get_auth_token();
     if (!$auth_token) {
@@ -70,7 +66,9 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
     return $data;
   }
 
-
+  /**
+   * get the Twitter Auth token to send along with queries
+   */
   public function get_auth_token() {
     $auth = 'Basic ' . base64_encode(urlencode($this->auth['consumer_key']) . ':' . urlencode($this->auth['consumer_secret']));
     $method = 'POST';
@@ -93,6 +91,10 @@ class OnTheWeb_Twitter extends OnTheWeb_Base {
 
 
 
+
+/**
+ * 
+ */
 public function get_followers_count($screen_name = 'theelders') {
     $saved_stats = variable_get('ontheweb_homestats', array());
     
@@ -216,12 +218,6 @@ public function get_followers_count($screen_name = 'theelders') {
     
     return $data;
 
-    // $webitems = array_map(array(
-    //   $this,
-    //   'normalise_posts'
-    // ) , $data);
-
-    // return $webitems;
   }
   
 
@@ -263,7 +259,7 @@ public function bulk_check($itm_ids=''){
 /**
  * from http://www.snipe.net/2009/09/php-twitter-clickable-links/
  */
-private function twitterify( $ret, $hashes=TRUE, $ats=TRUE, $trim=0, $ellipsis='…' ) {
+static function twitterify( $ret, $hashes=TRUE, $ats=TRUE, $trim=0, $ellipsis='…' ) {
   if ( $trim ) {
     $words = explode( ' ', $ret );
     if ( count( $words ) > $trim ) {
@@ -281,8 +277,8 @@ private function twitterify( $ret, $hashes=TRUE, $ats=TRUE, $trim=0, $ellipsis='
   $ret = preg_replace( '~&#x([0-9a-f]+);~ei', 'chr(hexdec("\\1"))', $ret );
   $ret = preg_replace( '~&#([0-9]+);~e', 'chr("\\1")', $ret );
 
-  $ret = preg_replace_callback( "#(^|[\n ])([\w]+?://[\w]+[^ \"\n\r\t< ]*)#", array($this,"shorten_url_title1"), $ret );
-  $ret = preg_replace_callback( "#(^|[\n ])((www|ftp)\.[^ \"\t\n\r< ]*)#", array($this, "shorten_url_title2"), $ret );
+  $ret = preg_replace_callback( "#(^|[\n ])([\w]+?://[\w]+[^ \"\n\r\t< ]*)#", array('OnTheWeb_Twitter',"shorten_url_title1"), $ret );
+  $ret = preg_replace_callback( "#(^|[\n ])((www|ftp)\.[^ \"\t\n\r< ]*)#", array('OnTheWeb_Twitter', "shorten_url_title2"), $ret );
 
   if ( $hashes ) {
     $ret = preg_replace( "/@(\w+)/", "<a href=\"http://www.twitter.com/\\1\" target=\"_blank\">@\\1</a>", $ret );
@@ -300,7 +296,7 @@ private function twitterify( $ret, $hashes=TRUE, $ats=TRUE, $trim=0, $ellipsis='
 /**
  *
  */
-private function shorten_url_title1( $match ) {
+static function shorten_url_title1( $match ) {
   if ( strlen( $match[2] ) > 16 ) {
     $title = substr( $match[2], 0, 20 ).'…';
   }else {
@@ -316,7 +312,7 @@ private function shorten_url_title1( $match ) {
 /**
  *
  */
-private function shorten_url_title2( $match ) {
+static function shorten_url_title2( $match ) {
   if ( strlen( $match[2] ) > 16 ) {
     $title = substr( $match[2], 0, 20 ).'…';
   }else {

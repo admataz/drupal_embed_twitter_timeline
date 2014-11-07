@@ -13,7 +13,7 @@ function embed_twitter_feed_config_form($form, &$form_state) {
   $saved_settings = variable_get('embed_twitter_feed_settings', array());
   
   $default_settings = array(
-    'twitter' => array(
+    'defaults' => array(
       'consumer_key' => '',
       'consumer_secret' => '',
       'timelines' => array(),
@@ -23,58 +23,59 @@ function embed_twitter_feed_config_form($form, &$form_state) {
 
     ) 
   );
+
   
   $options = array_merge($default_settings, $saved_settings);
-  $form['overview'] = array(
+  $form['defaults'] = array(
     '#type' => 'markup',
     '#markup' => t('<p>Use the form below to configure the connection to the Twitter API.</p>')
   );
   
-  $form['twitter'] = array(
+  $form['defaults'] = array(
     '#type' => 'fieldset',
     '#title' => 'Twitter Settings',
     '#tree' => TRUE
   );
   
-  $form['twitter']['consumer_key'] = array(
+  $form['defaults']['consumer_key'] = array(
     '#type' => 'textfield',
     '#title' => t('Twitter App Consumer Key') ,
-    '#default_value' => $options['twitter']['consumer_key'],
+    '#default_value' => $options['defaults']['consumer_key'],
   );
   
-  $form['twitter']['consumer_secret'] = array(
+  $form['defaults']['consumer_secret'] = array(
     '#type' => 'textfield',
     '#title' => t('Twitter App Consumer Secret') ,
-    '#default_value' => $options['twitter']['consumer_secret'],
+    '#default_value' => $options['defaults']['consumer_secret'],
   );
   
-  $form['twitter']['timelines'] = array(
+  $form['defaults']['timelines'] = array(
     '#type' => 'textfield',
-    '#title' => t('Timelines to follow') ,
-    '#description' => t('This module will allow you to follow and embed user timelines. Add a comma, separated, list of twitter screen names that you want to follow. Each timeline will be available as a separate variable. eg: drupal, barakobama, mrscruff1' ),
-    '#default_value' => $options['twitter']['timelines'],
+    '#title' => t('Default timeline to follow') ,
+    '#description' => t('This module will allow you to follow and embed a user timeline. Add the twitter screen name for the account that you want to follow. eg: drupal, barakobama, mrscruff1. Further timelines can be added using hooks from this module\'s API' ),
+    '#default_value' => $options['defaults']['timelines'],
   );
 
-  $form['twitter']['tweetcount'] = array(
+  $form['defaults']['tweetcount'] = array(
     '#type' => 'textfield',
     '#size' => 3,
     '#title' => t('Tweets to get') ,
     '#description' => t('How many tweets do you want to get? (default 10, max 100)' ),
-    '#default_value' => $options['twitter']['tweetcount'],
+    '#default_value' => $options['defaults']['tweetcount'],
   );
 
-   $form['twitter']['retweets'] = array(
+   $form['defaults']['retweets'] = array(
     '#type' => 'checkbox',
     '#title' => t('Include retweets?') ,
     '#description' => t('Off by default' ),
-    '#default_value' => $options['twitter']['retweets'],
+    '#default_value' => $options['defaults']['retweets'],
   );
 
-   $form['twitter']['replies'] = array(
+   $form['defaults']['replies'] = array(
     '#type' => 'checkbox',
     '#title' => t('Include replies?') ,
     '#description' => t('Off by default' ),
-    '#default_value' => $options['twitter']['replies'],
+    '#default_value' => $options['defaults']['replies'],
   );
  
   
